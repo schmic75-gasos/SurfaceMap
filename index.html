@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SurfaceMap – Mapa povrchů cest</title>
+    <meta name="description" content="Interaktivní mapa zobrazující povrchy cest (asfalt, beton, dlažba, hlína) z dat OpenStreetMap.">
+    <meta name="keywords" content="OpenStreetMap, Overpass, povrchy cest, asfalt, dlažba, cyklomapa, turistická mapa">
+    <meta name="author" content="SurfaceMap">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="map"></div>
+    <div id="controls">
+        <h3>🧭 SurfaceMap</h3>
+        <div class="control-item">
+            <label>
+                <input type="checkbox" id="autoLoad" checked> Automaticky načítat
+            </label>
+        </div>
+        <div class="control-item">
+            <button id="loadButton">Načíst data nyní</button>
+        </div>
+        <div id="warning" class="warning hidden">
+            ⚠️ Pro zobrazení povrchů přibližte mapu (zoom 14+)
+        </div>
+        <div id="loading" class="loading hidden">Načítám data...</div>
+        <div id="error" class="error hidden"></div>
+        <div id="legend">
+            <span><span class="color-dot" style="background:#333333;"></span> asfalt</span>
+            <span><span class="color-dot" style="background:#8B4513;"></span> hlína</span>
+            <span><span class="color-dot" style="background:#999999;"></span> beton</span>
+            <span><span class="color-dot" style="background:#ffaa00;"></span> dlažba</span>
+            <span><span class="color-dot" style="background:#ff00ff;"></span> ostatní</span>
+        </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
