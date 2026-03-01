@@ -51,16 +51,80 @@
         <div id="loading" class="loading hidden">Načítám data...</div>
         <div id="error" class="error hidden"></div>
 
-        <!-- Legenda (zkrácená) -->
+    <!-- Legenda (rozšířená) -->
         <div id="legend">
-            <span><span class="color-dot" style="background:#2c3e50;"></span> asfalt</span>
-            <span><span class="color-dot" style="background:#8B4513;"></span> hlína</span>
-            <span><span class="color-dot" style="background:#7f8c8d;"></span> beton</span>
-            <span><span class="color-dot" style="background:#f39c12;"></span> dlažba</span>
-            <span><span class="color-dot" style="background:#27ae60;"></span> dřevo</span>
-            <span><span class="color-dot" style="background:#95a5a6;"></span> kámen</span>
-            <span><span class="color-dot" style="background:#e67e22;"></span> štěrk</span>
-            <span><span class="color-dot" style="background:#9b59b6;"></span> ostatní</span>
+            <div class="legend-header" id="legendToggle">
+                <span>📋 Legenda</span>
+                <span class="legend-arrow">▼</span>
+            </div>
+            <div id="legendContent" class="legend-content">
+                <div class="legend-item" data-category="asfalt">
+                    <span class="color-dot" style="background:#2c3e50;"></span>
+                    <span>asfalt</span>
+                    <span class="legend-count" id="count-asfalt">0</span>
+                </div>
+                <div class="legend-item" data-category="beton">
+                    <span class="color-dot" style="background:#7f8c8d;"></span>
+                    <span>beton</span>
+                    <span class="legend-count" id="count-beton">0</span>
+                </div>
+                <div class="legend-item" data-category="dlazba">
+                    <span class="color-dot" style="background:#f39c12;"></span>
+                    <span>dlažba</span>
+                    <span class="legend-count" id="count-dlazba">0</span>
+                </div>
+                <div class="legend-item" data-category="hilna">
+                    <span class="color-dot" style="background:#8B4513;"></span>
+                    <span>hlína</span>
+                    <span class="legend-count" id="count-hilna">0</span>
+                </div>
+                <div class="legend-item" data-category="sterk">
+                    <span class="color-dot" style="background:#b87333;"></span>
+                    <span>štěrk</span>
+                    <span class="legend-count" id="count-sterk">0</span>
+                </div>
+                <div class="legend-item" data-category="drevo">
+                    <span class="color-dot" style="background:#27ae60;"></span>
+                    <span>dřevo</span>
+                    <span class="legend-count" id="count-drevo">0</span>
+                </div>
+                <div class="legend-item" data-category="kamen">
+                    <span class="color-dot" style="background:#95a5a6;"></span>
+                    <span>kámen</span>
+                    <span class="legend-count" id="count-kamen">0</span>
+                </div>
+                <div class="legend-item" data-category="piasek">
+                    <span class="color-dot" style="background:#f4e9d9;"></span>
+                    <span>písek</span>
+                    <span class="legend-count" id="count-piasek">0</span>
+                </div>
+                <div class="legend-item" data-category="umele">
+                    <span class="color-dot" style="background:#9b59b6;"></span>
+                    <span>umělé</span>
+                    <span class="legend-count" id="count-umele">0</span>
+                </div>
+                <div class="legend-item" data-category="travni">
+                    <span class="color-dot" style="background:#7cfc00;"></span>
+                    <span>travnaté</span>
+                    <span class="legend-count" id="count-travni">0</span>
+                </div>
+                <div class="legend-item" data-category="bez">
+                    <span class="color-dot no-surface"></span>
+                    <span>bez povrchu</span>
+                    <span class="legend-count" id="count-bez">0</span>
+                </div>
+                <div class="legend-item" data-category="ostatni">
+                    <span class="color-dot" style="background:#9b59b6;"></span>
+                    <span>ostatní</span>
+                    <span class="legend-count" id="count-ostatni">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Odkazy -->
+        <div class="links-panel">
+            <a href="https://codeberg.org/osmcz/SurfaceMap" target="_blank" title="Zdrojový kód">🔗 GitHub</a>
+            <a href="https://openstreetmap.org/" id="osmLink" title="Otevřít v OSM">🗺️ OSM</a>
         </div>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

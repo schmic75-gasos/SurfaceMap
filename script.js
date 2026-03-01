@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const ZOOM_MIN = 14;
     const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
     const MIN_REQUEST_INTERVAL = 2000; // ms
+    const NO_SURFACE_COLOR = '#e67e22'; // oranžová pro cesty bez povrchu
 
     // ========== BAREVNÁ MAPA POVRCHŮ (rozšířená) ==========
     const surfaceColors = {
@@ -43,11 +44,11 @@ document.addEventListener('DOMContentLoaded', function() {
         'metal': '#7f8c8d',
         'plastic': '#9b59b6',
         'rubber': '#9b59b6',
-        'tartan': '#e74c3c',   // atletický
+        'tartan': '#e74c3c',
         'artificial_turf': '#2ecc71',
         'acrylic': '#3498db',
         'decoturf': '#2980b9',
-        'clay': '#c44536',      // antuka
+        'clay': '#c44536',
         'tennis_clay': '#c44536',
         // travnaté
         'grass': '#7cfc00',
@@ -68,16 +69,17 @@ document.addEventListener('DOMContentLoaded', function() {
         { id: 'hilna', label: 'Hlína / zemina', color: '#8B4513', surfaces: ['dirt', 'ground', 'earth', 'mud'] },
         { id: 'sterk', label: 'Štěrk', color: '#b87333', surfaces: ['gravel', 'fine_gravel', 'pebblestone', 'compacted'] },
         { id: 'drevo', label: 'Dřevo', color: '#27ae60', surfaces: ['wood', 'woodchips', 'bark'] },
-        { id: 'kamen', label: 'Kámen', color: '#95a5a6', surfaces: ['stone', 'rock', 'granite'] }, // přidáno pár navíc
+        { id: 'kamen', label: 'Kámen', color: '#95a5a6', surfaces: ['stone', 'rock', 'granite'] },
         { id: 'piasek', label: 'Písek', color: '#f4e9d9', surfaces: ['sand'] },
         { id: 'umele', label: 'Umělé', color: '#9b59b6', surfaces: ['plastic', 'rubber', 'tartan', 'artificial_turf', 'acrylic', 'decoturf', 'clay', 'tennis_clay'] },
         { id: 'travni', label: 'Travnaté', color: '#7cfc00', surfaces: ['grass', 'grass_paver', 'gravel_turf'] },
-        { id: 'ostatni', label: 'Ostatní', color: '#9b59b6', surfaces: [] } // catch-all
+        { id: 'bez', label: 'Bez povrchu', color: NO_SURFACE_COLOR, surfaces: [] }, // speciální kategorie
+        { id: 'ostatni', label: 'Ostatní', color: '#9b59b6', surfaces: [] }
     ];
 
     // pomocná funkce: zjistí kategorii podle surface
     function getCategoryId(surface) {
-        if (!surface) return 'ostatni';
+        if (!surface || surface === '') return 'bez'; // cesty bez surface tagu
         const s = surface.toLowerCase().split(';')[0].trim();
         for (let cat of categories) {
             if (cat.surfaces.includes(s)) return cat.id;
@@ -97,6 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let allWays = [];              // všechny načtené cesty (geometrie + tagy)
     let isLoading = false;
     let lastRequestTime = 0;
+    let categoryStats = {};        // statistiky pro legendu
 
     // ========== DOM ELEMENTY ==========
     const autoLoadCheckbox = document.getElementById('autoLoad');
@@ -111,6 +114,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const filtersPanel = document.getElementById('filtersPanel');
     const selectAllBtn = document.getElementById('selectAllBtn');
     const deselectAllBtn = document.getElementById('deselectAllBtn');
+    const legendToggle = document.getElementById('legendToggle');
+    const legendContent = document.getElementById('legendContent');
+    const osmLink = document.getElementById('osmLink');
 
     // ========== FILTRY ==========
     let filterState = {}; // { categoryId: true/false }
@@ -125,7 +131,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (savedFilters) {
                 filterState = JSON.parse(savedFilters);
             } else {
-                // default: všechny kategorie kromě "ostatní" možná? nebo všechny true
                 categories.forEach(cat => filterState[cat.id] = true);
             }
         } catch (e) {
@@ -154,15 +159,21 @@ document.addEventListener('DOMContentLoaded', function() {
             cb.addEventListener('change', (e) => {
                 filterState[cat.id] = e.target.checked;
                 saveSettings();
-                renderWays(); // překreslíme podle nových filtrů
+                renderWays();
+                updateLegendHighlights();
             });
             label.appendChild(cb);
             label.appendChild(document.createTextNode(cat.label));
             // malá barevná tečka
             const dot = document.createElement('span');
             dot.className = 'color-dot';
-            dot.style.backgroundColor = cat.color;
+            dot.style.backgroundColor = cat.id === 'bez' ? NO_SURFACE_COLOR : cat.color;
             dot.style.marginLeft = 'auto';
+            if (cat.id === 'bez') {
+                dot.classList.add('no-surface');
+                dot.style.width = '14px';
+                dot.style.height = '14px';
+            }
             label.appendChild(dot);
             div.appendChild(label);
             filtersContainer.appendChild(div);
@@ -174,26 +185,53 @@ document.addEventListener('DOMContentLoaded', function() {
         surfaceLayer.clearLayers();
         let visibleCount = 0;
 
+        // Reset statistik
+        categoryStats = {};
+        categories.forEach(cat => categoryStats[cat.id] = 0);
+
         allWays.forEach(way => {
             const catId = getCategoryId(way.surface);
+            categoryStats[catId] = (categoryStats[catId] || 0) + 1;
+
             if (!filterState[catId]) return; // filtr nepropustí
 
             visibleCount++;
-            const color = surfaceColors[way.surface?.toLowerCase()] || defaultColor;
+            
+            // Získání barvy - speciální styl pro cesty bez povrchu
+            let color, dashArray, weight, opacity;
+            
+            if (!way.surface || way.surface === '') {
+                // Cesta bez surface tagu - čárkovaná oranžová čára
+                color = NO_SURFACE_COLOR;
+                dashArray = '8, 6';
+                weight = 4;
+                opacity = 0.7;
+            } else {
+                color = surfaceColors[way.surface?.toLowerCase()] || defaultColor;
+                dashArray = null;
+                weight = 4;
+                opacity = 0.8;
+            }
 
             // Vytvoření polyline
             const polyline = L.polyline(way.latlngs, {
                 color: color,
-                weight: 4,
-                opacity: 0.8,
-                smoothFactor: 1
+                weight: weight,
+                opacity: opacity,
+                smoothFactor: 1,
+                dashArray: dashArray
             });
 
             // Popup s informacemi
-            let popupText = `<b>Povrch:</b> ${way.surface || 'neznámý'}<br>`;
+            let popupText = `<b>Povrch:</b> ${way.surface || '<span style="color:#e67e22;">⚠️ bez surface tagu</span>'}<br>`;
             popupText += `<b>Highway:</b> ${way.highway || 'neznámý'}<br>`;
             if (way.name) popupText += `<b>Název:</b> ${way.name}<br>`;
             if (way.length) popupText += `<b>Délka:</b> ${way.length.toFixed(0)} m<br>`;
+            
+            // Odkaz na OSM
+            popupText += `<hr style="margin:8px 0;opacity:0.3">`;
+            popupText += `<a href="https://www.openstreetmap.org/way/${way.id}" target="_blank">🔗 Zobrazit v OSM</a>`;
+            
             polyline.bindPopup(popupText);
 
             polyline.addTo(surfaceLayer);
@@ -201,6 +239,64 @@ document.addEventListener('DOMContentLoaded', function() {
 
         totalSpan.textContent = allWays.length;
         visibleSpan.textContent = visibleCount;
+        
+        // Aktualizace statistik v legendě
+        updateLegendCounts();
+    }
+
+    // ========== AKTUALIZACE POČTŮ V LEGENDĚ ==========
+    function updateLegendCounts() {
+        categories.forEach(cat => {
+            const countEl = document.getElementById(`count-${cat.id}`);
+            if (countEl) {
+                countEl.textContent = categoryStats[cat.id] || 0;
+            }
+        });
+    }
+
+    // ========== ZVÝRAZNĚNÍ AKTIVNÍCH FILTRŮ V LEGENDĚ ==========
+    function updateLegendHighlights() {
+        const legendItems = document.querySelectorAll('.legend-item');
+        legendItems.forEach(item => {
+            const category = item.getAttribute('data-category');
+            if (category && filterState[category]) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+
+    // ========== INTERAKTIVNÍ LEGENDA ==========
+    function setupLegend() {
+        // Přepínání rozbalení legendy
+        legendToggle.addEventListener('click', () => {
+            legendContent.classList.toggle('collapsed');
+            const arrow = legendToggle.querySelector('.legend-arrow');
+            arrow.textContent = legendContent.classList.contains('collapsed') ? '▶' : '▼';
+        });
+
+        // Kliknutí na položku legendy - přepnutí filtru
+        const legendItems = document.querySelectorAll('.legend-item');
+        legendItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const category = item.getAttribute('data-category');
+                if (category && filterState.hasOwnProperty(category)) {
+                    filterState[category] = !filterState[category];
+                    saveSettings();
+                    renderFilterCheckboxes();
+                    renderWays();
+                    updateLegendHighlights();
+                }
+            });
+        });
+    }
+
+    // ========== ODKAZ NA OSM ==========
+    function updateOsmLink() {
+        const center = map.getCenter();
+        const url = `https://www.openstreetmap.org/?map=${map.getZoom()}/${center.lat.toFixed(5)}/${center.lng.toFixed(5)}`;
+        osmLink.href = url;
     }
 
     // ========== STAŽENÍ DAT Z OVERPASS API ==========
@@ -210,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             warningDiv.classList.remove('hidden');
             surfaceLayer.clearLayers();
             allWays = [];
-            renderWays(); // aktualizuje počty
+            renderWays();
             return;
         } else {
             warningDiv.classList.add('hidden');
@@ -230,7 +326,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const bounds = map.getBounds();
         const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
-        const query = `[out:json];way[highway][surface](${bbox});out geom;`;
+        
+        // Upravený dotaz - stahuje i cesty bez surface tagu
+        const query = `[out:json];way[highway](${bbox});out geom;`;
         const url = `${OVERPASS_ENDPOINT}?data=${encodeURIComponent(query)}`;
 
         try {
@@ -254,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 newWays.push({
                     id: el.id,
-                    surface: el.tags?.surface,
+                    surface: el.tags?.surface || '', // prázdný string pro cesty bez surface
                     highway: el.tags?.highway,
                     name: el.tags?.name,
                     latlngs: latlngs,
@@ -265,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
             allWays = newWays;
             lastRequestTime = Date.now();
             renderWays();
+            updateOsmLink();
         } catch (err) {
             console.error(err);
             errorDiv.textContent = 'Chyba při načítání dat. Zkuste to prosím později.';
@@ -280,7 +379,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (autoLoadCheckbox.checked) {
             loadData();
         } else {
-            // i když není auto, kontrolujeme zoom a varování
+            if (map.getZoom() < ZOOM_MIN) warningDiv.classList.remove('hidden');
+            else warningDiv.classList.add('hidden');
+        }
+        updateOsmLink();
+    });
+
+    map.on('zoomend', function() {
+        if (autoLoadCheckbox.checked) {
+            loadData();
+        } else {
             if (map.getZoom() < ZOOM_MIN) warningDiv.classList.remove('hidden');
             else warningDiv.classList.add('hidden');
         }
@@ -298,6 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderFilterCheckboxes();
         saveSettings();
         renderWays();
+        updateLegendHighlights();
     });
 
     deselectAllBtn.addEventListener('click', () => {
@@ -305,6 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderFilterCheckboxes();
         saveSettings();
         renderWays();
+        updateLegendHighlights();
     });
 
     autoLoadCheckbox.addEventListener('change', () => {
@@ -313,11 +423,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ========== SPUŠTĚNÍ ==========
     loadSettings();
-    // První načtení, pokud je auto zapnuté
+    setupLegend();
+    updateLegendHighlights();
+    
     if (autoLoadCheckbox.checked) {
-        setTimeout(() => loadData(), 300); // drobný odklad pro stabilitu mapy
+        setTimeout(() => loadData(), 300);
     } else {
-        // alespoň zkontrolujeme zoom
         if (map.getZoom() < ZOOM_MIN) warningDiv.classList.remove('hidden');
     }
 });

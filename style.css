@@ -199,29 +199,107 @@ body, html {
 }
 
 #legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 16px;
     margin-top: 16px;
     padding-top: 12px;
     border-top: 2px solid #e2e8f0;
-    font-size: 0.8rem;
-    color: #334155;
 }
 
-#legend span {
-    display: inline-flex;
+.legend-header {
+    display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
+    cursor: pointer;
+    font-weight: 600;
+    color: #0f172a;
+    padding: 8px 0;
+    user-select: none;
 }
 
-.color-dot {
-    width: 18px;
-    height: 18px;
-    border-radius: 6px;
-    display: inline-block;
-    border: 1px solid rgba(0,0,0,0.1);
-    box-shadow: 0 2px 3px rgba(0,0,0,0.05);
+.legend-header:hover {
+    color: #2563eb;
+}
+
+.legend-arrow {
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+}
+
+.legend-content {
+    max-height: 300px;
+    overflow-y: auto;
+    transition: max-height 0.3s ease-out;
+}
+
+.legend-content.collapsed {
+    max-height: 0;
+    overflow: hidden;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #334155;
+    transition: background 0.15s;
+}
+
+.legend-item:hover {
+    background: #f1f5f9;
+}
+
+.legend-item.active {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.legend-count {
+    margin-left: auto;
+    background: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.color-dot.no-surface {
+    background: repeating-linear-gradient(
+        45deg,
+        #e67e22,
+        #e67e22 3px,
+        #f39c12 3px,
+        #f39c12 6px
+    );
+    border: 2px dashed #e67e22;
+}
+
+.links-panel {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.links-panel a {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+    background: #f1f5f9;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    color: #334155;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+}
+
+.links-panel a:hover {
+    background: #2563eb;
+    color: white;
 }
 
 /* Mobile */
