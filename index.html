@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SurfaceMap – Mapa povrchů cest</title>
-    <meta name="description" content="Interaktivní mapa zobrazující povrchy cest (asfalt, beton, dlažba, hlína) z dat OpenStreetMap.">
-    <meta name="keywords" content="OpenStreetMap, Overpass, povrchy cest, asfalt, dlažba, cyklomapa, turistická mapa">
+    <title>SurfaceMap – podrobná mapa povrchů cest</title>
+    <meta name="description" content="Rozšířená mapa povrchů cest z OpenStreetMap – asfalt, beton, dlažba, hlína, dřevo, kámen a další s možností filtrování.">
+    <meta name="keywords" content="OpenStreetMap, Overpass, povrchy cest, asfalt, dlažba, cyklomapa, turistická mapa, filtr povrchů">
     <meta name="author" content="SurfaceMap">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
@@ -13,26 +13,54 @@
 <body>
     <div id="map"></div>
     <div id="controls">
-        <h3>🧭 SurfaceMap</h3>
+        <div class="panel-header">
+            <h3>🧭 SurfaceMap</h3>
+            <button id="toggleFilters" class="icon-button" title="Rozbalit filtry">⚙️</button>
+        </div>
+        
         <div class="control-item">
             <label>
                 <input type="checkbox" id="autoLoad" checked> Automaticky načítat
             </label>
         </div>
+        
         <div class="control-item">
-            <button id="loadButton">Načíst data nyní</button>
+            <button id="loadButton" class="primary-button">📥 Načíst data nyní</button>
         </div>
+
+        <!-- Filtry (rozbalovací) -->
+        <div id="filtersPanel" class="filters-panel hidden">
+            <h4>Filtry povrchů</h4>
+            <div id="filtersContainer"></div>
+            <div class="filter-actions">
+                <button id="selectAllBtn">Vybrat vše</button>
+                <button id="deselectAllBtn">Odznačit vše</button>
+            </div>
+        </div>
+
+        <!-- Statistiky -->
+        <div id="stats" class="stats">
+            <span id="totalWays">0</span> cest celkem,
+            <span id="visibleWays">0</span> zobrazeno
+        </div>
+
+        <!-- Informační panely -->
         <div id="warning" class="warning hidden">
             ⚠️ Pro zobrazení povrchů přibližte mapu (zoom 14+)
         </div>
         <div id="loading" class="loading hidden">Načítám data...</div>
         <div id="error" class="error hidden"></div>
+
+        <!-- Legenda (zkrácená) -->
         <div id="legend">
-            <span><span class="color-dot" style="background:#333333;"></span> asfalt</span>
+            <span><span class="color-dot" style="background:#2c3e50;"></span> asfalt</span>
             <span><span class="color-dot" style="background:#8B4513;"></span> hlína</span>
-            <span><span class="color-dot" style="background:#999999;"></span> beton</span>
-            <span><span class="color-dot" style="background:#ffaa00;"></span> dlažba</span>
-            <span><span class="color-dot" style="background:#ff00ff;"></span> ostatní</span>
+            <span><span class="color-dot" style="background:#7f8c8d;"></span> beton</span>
+            <span><span class="color-dot" style="background:#f39c12;"></span> dlažba</span>
+            <span><span class="color-dot" style="background:#27ae60;"></span> dřevo</span>
+            <span><span class="color-dot" style="background:#95a5a6;"></span> kámen</span>
+            <span><span class="color-dot" style="background:#e67e22;"></span> štěrk</span>
+            <span><span class="color-dot" style="background:#9b59b6;"></span> ostatní</span>
         </div>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
